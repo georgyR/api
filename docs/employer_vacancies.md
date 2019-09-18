@@ -1,5 +1,6 @@
 # Вакансии для работодателя
 
+* [Возможные варианты публикации вакансий](#available_types)
 * [Публикация вакансий](#creation)
 * [Условия заполнения полей при добавлении и редактировании вакансий](#conditions)
 * [Редактирование вакансий](#edit)
@@ -16,6 +17,130 @@
 Смотрите также:
 
 * [Дополнительные поля для автора вакансии при получении вакансии](vacancies.md#author)
+
+
+<a name="available_types"></a>
+## Возможные варианты публикации вакансий у текущего менеджера
+
+Метод нужен, чтобы понять, может ли менеджер публиковать вакансии и какие типы вакансий ему доступны. Возвращает все возможные типы публикации.
+
+### Запрос
+
+```GET /employers/{employer_id}/managers/{manager_id}/vacancies/available_types```
+
+где:
+
+* `employer_id` - идентификатор работодателя, который можно узнать в 
+[информации о текущем пользователе](me.md#employer-info).
+* `manager_id` - идентификатор менеджера.
+
+### Ответ
+
+В случае успешного выполнения запроса, будет возвращён статус `200 OK`.
+В теле ответа будет содержаться информация о вариантах публикации вакансии:
+
+```json
+{
+    "items": [
+        {
+            "name": "Бесплатная",
+            "description": "Вакансия размещается на 30 дней; только для подтвержденных работодателей; этот тип вакансий доступен везде, кроме городов России.",
+            "publications_count": 10,
+            "can_publish": true,
+            "has_publications_employer": true,
+            "has_publications_manager": true,
+            "publication_areas_url": "https://api.hh.ru/areas?exclude=113&vacancy_publication_flag=true",
+            "impossibility_reason": null,
+            "vacancy_billing_type": {
+                "id": "free"
+            },
+            "vacancy_type": {
+                "id": "open"
+            }
+            
+        },
+        {
+            "name": "Стандарт: без обновления, закрытая",
+            "description": "Автоматически поднимается в поисковой выдаче вакансий каждые 3 дня; размещается на 30 дней. Вакансия видна только приглашенным кандидатам. Такую вакансию нельзя будет найти через поиск и увидеть неприглашенным кандидатам",
+            "publications_count": 10,
+            "can_publish": true,
+            "has_publications_employer": true,
+            "has_publications_manager": true,
+            "publication_areas_url": "https://api.hh.ru/areas?exclude=1,2&vacancy_publication_flag=true",
+            "impossibility_reason": null,
+            "vacancy_billing_type": {
+                "id": "standart"
+            },
+            "vacancy_type": {
+                "id": "closed"
+            }
+            
+        },
+        {
+            "name": "Премиум: неделя в топе",
+            "description": "Первые 7 дней публикация выделена цветом, брендирована логотипом вашей компании и находится вверху поисковой выдачи; вакансия отправляется в рассылке подходящим соискателям; размещается на 30 дней.",
+            "publications_count": 0,
+            "can_publish": false,
+            "has_publications_employer": true,
+            "has_publications_manager": false,
+            "publication_areas_url": "https://api.hh.ru/areas?include=1,2&vacancy_publication_flag=true",
+            "impossibility_reason": {
+                "code": "quotas_exceed",
+                "message": "У вас закончились квоты на вакансии этого типа. Обратитесь к администратору вашей компании."
+            },
+            "vacancy_billing_type": {
+                "id": "free"
+            },
+            "vacancy_type": {
+                "id": "open"
+            }
+        },
+        {
+            "name": "Стандарт: без обновления, открытая",
+            "description": "Вакансия размещается на 30 дней.",
+            "publications_count": 247,
+            "can_publish": true,
+            "has_publications_employer": true,
+            "has_publications_manager": true,
+            "publication_areas_url": "https://api.hh.ru/areas?include=1,2&vacancy_publication_flag=true",
+            "impossibility_reason": null,
+            "vacancy_billing_type": {
+                "id": "free"
+            },
+            "vacancy_type": {
+                "id": "open"
+            }
+        }
+    ]
+}
+
+```
+
+Каждый элемент из `items` может обладать следующими полями:
+
+Имя | Тип | Описание
+--- | --- | --------
+name | string | Название типа публикации
+description | string | Описание
+publications_count | number | Количество публикаций, доступных данному менеджеру
+can_publish | boolean | Можно ли использовать данный тип публикации
+has_publications_employer | boolean | Есть ли у работодателя доступные публикации данного типа
+has_publications_manager | boolean | Есть ли на счету у менеджера доступные публикации данного типа
+impossibility_reason | object или null | Причина невозможности использования данного типа
+impossibility_reason.code | string | Код причины невозможности использования данного типа
+impossibility_reason.message | string | Информация для пользователя о причине невозможности
+publication_areas_url | string | URL на список регионов, в которых можно опубликовать вакансию данного типа. Список возвращается в древовидной структуре и публикация вакансий возможна только в конечных (листовых) узлах дерева. Они помечеты флагом `can_publish=true`  
+vacancy_billing_type.id | string | Биллинговый тип [из справочника vacancy_billing_type](dictionaries.md).
+vacancy_type.id | string | Тип вакансии [из справочника vacancy_type](dictionaries.md)
+
+Значения `vacancy_billing_type.id` и `vacancy_type.id` соответствуют параметрам `billing_type` и `type` при публикации вакансии 
+
+
+### Ошибки
+
+* `400 Bad Request` - ошибка в параметрах запроса
+* `403 Forbidden` - текущий пользователь - не работодатель, текущий пользователь пытается запросить данные для другого менеджера или у менеджера нет доступа к публикации вакансий
+* `404 Not Found` - менеджер или компания не существуют или не доступны для текущего пользователя
 
 
 <a name="creation"></a>
